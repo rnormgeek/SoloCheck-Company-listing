@@ -1,4 +1,3 @@
-from urllib import request
 from webbrowser import get
 import requests
 from bs4 import BeautifulSoup

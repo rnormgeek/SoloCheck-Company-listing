@@ -78,18 +78,18 @@ class Company:
         self.url = url
         self.name = self.get_name()
         self.address = self.get_address()
-        self.phone = self.get_phone()
-        self.email = self.get_email()
-        self.website = self.get_website()
-        self.description = self.get_description()
-        self.sector = self.get_sector()
-        self.employees = self.get_employees()
-        self.founded = self.get_founded()
-        self.revenue = self.get_revenue()
-        self.employees = self.get_employees()
-        self.industry = self.get_industry()
-        self.tags = self.get_tags()
-        self.keywords = self.get_keywords()
+        # self.phone = self.get_phone()
+        # self.email = self.get_email()
+        # self.website = self.get_website()
+        # self.description = self.get_description()
+        # self.sector = self.get_sector()
+        # self.employees = self.get_employees()
+        # self.founded = self.get_founded()
+        # self.revenue = self.get_revenue()
+        # self.employees = self.get_employees()
+        # self.industry = self.get_industry()
+        # self.tags = self.get_tags()
+        # self.keywords = self.get_keywords()
 
     def get_name(self):
         """
@@ -101,9 +101,13 @@ class Company:
         # Parse the html content
         soup = BeautifulSoup(html_content, 'lxml')
         # Get the text from element tag name
-        tag = soup.find('header')
-        name = tag.find('h1').text
-        return name.text
+        for tag in soup.find_all('header'):
+            for h in tag.find_all('h1'):
+                if h == '<a href="/"><img alt="SoloCheck.ie" src="/imgs/logo.png"/></a>':
+                    pass
+                else:
+                    name = h.text
+        return name
 
     def get_address(self):
         """
@@ -115,15 +119,17 @@ class Company:
         # Parse the html content
         soup = BeautifulSoup(html_content, 'lxml')
         # Get the text from element tag name
-        tag = soup.find('div', {'class': 'address'})
-        address = tag.text
-        return address.text
+        tag = soup.find_all('span', {'class': 'desc', 'itemprop': 'address'})
+        address = [t.text for t in tag]
+        return address
 
 
 if __name__ == "__main__":
     session = setup_session(proxies)
-    logging.basicConfig()
-    print(get_company_listings_complete_links(session))
-    print(get_company_urls(session, "https://www.solocheck.ie/IrishCompanyInfo?i=00"))
+    # print(get_company_listings_complete_links(session))
+    # print(get_company_urls(session, "https://www.solocheck.ie/IrishCompanyInfo?i=00"))
     sample_company_url = 'https://www.solocheck.ie/Irish-Company/007-Iventure-Innovations-Limited-551996'
  
+    test_company = Company(url=sample_company_url)
+    print(test_company.name)
+    print(test_company.address)

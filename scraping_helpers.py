@@ -69,67 +69,76 @@ def get_company_urls(session, url):
     complete_links = [f'{root_url}{link}' for link in results]
 
     return complete_links
-
-
-
+    
 
 class Company:
     def __init__(self, url):
         self.url = url
-        self.name = self.get_name()
-        self.address = self.get_address()
-        # self.phone = self.get_phone()
-        # self.email = self.get_email()
-        # self.website = self.get_website()
-        # self.description = self.get_description()
-        # self.sector = self.get_sector()
-        # self.employees = self.get_employees()
-        # self.founded = self.get_founded()
-        # self.revenue = self.get_revenue()
-        # self.employees = self.get_employees()
-        # self.industry = self.get_industry()
-        # self.tags = self.get_tags()
-        # self.keywords = self.get_keywords()
+        self.set_company_attributes()
 
-    def get_name(self):
+    def _format_address(self, unformated_address):
         """
-        Get the company name from the company url.
+        Format the company address
         """
-        # Get the html content from the url
+        address_elements = unformated_address.split(",")
+        formated_address = " ".join(address_elements)
+        return formated_address
+
+    def _get_company_report(self):
+        """
+        Get the company report
+        """
+        # Get the html from the url
         response = requests.get(self.url)
         html_content = response.content
         # Parse the html content
-        soup = BeautifulSoup(html_content, 'lxml')
-        # Get the text from element tag name
-        for tag in soup.find_all('header'):
-            for h in tag.find_all('h1'):
-                if h == '<a href="/"><img alt="SoloCheck.ie" src="/imgs/logo.png"/></a>':
-                    pass
-                else:
-                    name = h.text
-        return name
+        soup = BeautifulSoup(html_content, 'html.parser')
+        # Get the content from the tag
+        tag = soup.find('div', id='report-1')
+        return tag
 
-    def get_address(self):
+    def _get_vitals_from_report(self):
         """
-        Get the company address from the company url.
+        Using the company report, extract all the vital info of the company
         """
-        # Get the html content from the url
-        response = requests.get(self.url)
-        html_content = response.content
-        # Parse the html content
-        soup = BeautifulSoup(html_content, 'lxml')
-        # Get the text from element tag name
-        tag = soup.find_all('span', {'class': 'desc', 'itemprop': 'address'})
-        address = [t.text for t in tag]
-        return address
+        vitals = {}
+        for ul in self._get_company_report().find_all('ul'):
+            for li in ul.find_all('li'):
+                for span in li.find_all('span'):
+                    if span.has_attr('class'):
+                        if span['class'] == ['title']:
+                            key = span.text.replace(':', '').lower()
+                        if span['class'] == ['desc']:
+                            value = span.text
+                        try:
+                            vitals[key] = value
+                        except UnboundLocalError:
+                            pass
+        return vitals
 
+    def set_company_attributes(self):
+        vitals = self._get_vitals_from_report()
+        self.name = vitals['company name']
+        self.age = vitals['time in business']
+        self.company_number = vitals['company number']
+        self.size = vitals['size']
+        self.current_status = vitals['current status']
+        self.activity = vitals['principal activity']
+        self.trading_name = vitals['may trade as']
+        self.address = self._format_address(vitals['registered address'])
+
+    def show(self, attr):
+        print(f'{attr}: {self.__getattribute__(attr)}')
+
+    def show_vitals(self):
+        for v in ['name', 'age', 'company_number', 'size', 'current_status', 'activity', 'trading_name', 'address']:
+            self.show(v)
 
 if __name__ == "__main__":
     session = setup_session(proxies)
     # print(get_company_listings_complete_links(session))
     # print(get_company_urls(session, "https://www.solocheck.ie/IrishCompanyInfo?i=00"))
-    sample_company_url = 'https://www.solocheck.ie/Irish-Company/007-Iventure-Innovations-Limited-551996'
+    sample_company_url = 'https://www.solocheck.ie/Irish-Company/N-Oconnor-Construction-Limited-635031'
  
     test_company = Company(url=sample_company_url)
-    print(test_company.name)
-    print(test_company.address)
+    test_company.show_vitals()

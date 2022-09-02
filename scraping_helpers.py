@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import logging
+import re
 
 proxies = {
     'http': 'http://vfieczproxy.internal.vodafone.com:8080'
@@ -97,27 +98,40 @@ class Company:
         logging.debug(f'Parsing complete.')
         return soup
 
-    def _get_company_summary(self):
+    def _get_company_summary(self, soup):
         """
-        Get the company summary
+        Get the company summary from the soup and parse it to a dictinary
         """
-        # Get the html from the url
-        response = requests.get(self.url)
-        html_content = response.content
-        # Parse the html content
-        soup = BeautifulSoup(html_content, 'html.parser')
-        logging.debug(f'Parsing complete.')
         # Get the content from the tag
         tag = soup.find('div', id='report-6')
         logging.debug(f'report-6 found')
-        return tag
+        summary_text = tag.find('p').text
+        sentences = summary_text.split('.') # Split by sentence
 
-    def _get_vitals_from_report(self):
+        summary = {}
+        # Check the third sentence for the number of companies the director has chaired
+        director_companies = re.search(r'[0-9]', sentences[2])
+        if director_companies:
+            summary['director_companies'] = director_companies.group()
+
+        # Check the fourth sentence for the number of shareholders
+        shareholders = re.search(r'[0-9]+ shareholder', sentences[3])
+        if shareholders:
+            summary['shareholders'] = re.search('[0-9]+', shareholders.group()).group() # Get the number of shareholders
+
+        # Check if there is a fifth sentence, and if there is, get the number companies sharing the Eircode
+        if len(sentences) >= 4:
+            eircode = re.search(r'Eircode with at least [0-9]+ other', sentences[4])
+            if eircode:
+                summary['eircode'] = re.search('[0-9]+', eircode.group()).group() # Get the number of companies sharing the Eircode
+
+        return summary
+
+    def _get_vitals_from_report(self, soup):
         """
         Using the company report, extract all the vital info of the company
         """
         vitals = {}
-        soup = self._get_soup()
         company_report = self._get_element_from_soup(soup, 'report-1')
         for ul in company_report.find_all('ul'):
             for li in ul.find_all('li'):
@@ -126,7 +140,11 @@ class Company:
                         if span['class'] == ['title']:
                             key = span.text.replace(':', '').lower()
                         if span['class'] == ['desc']:
-                            value = span.text
+                            hidden = span.find_all('li')
+                            if len(hidden) > 0:
+                                value = [h.text for h in hidden if re.search(r'\. \. \.', h.text) is None]
+                            else:
+                                value = span.text
                         try:
                             vitals[key] = value
                         except UnboundLocalError:
@@ -135,7 +153,10 @@ class Company:
         return vitals
 
     def set_company_attributes(self):
-        vitals = self._get_vitals_from_report()
+        soup = self._get_soup()
+        vitals = self._get_vitals_from_report(soup=soup)
+        #TODO: Add the rest of the attributes
+        summary = self._get_company_summary(soup=soup)
         self.name = vitals['company name']
         self.age = vitals['time in business']
         self.company_number = vitals['company number']
@@ -164,8 +185,7 @@ if __name__ == "__main__":
         filemode='a')
 
     session = setup_session(proxies)
-    sample_company_url = 'https://www.solocheck.ie/Irish-Company/N-Oconnor-Construction-Limited-635031'
+    sample_company_url = 'https://www.solocheck.ie/Irish-Company/Saleslink-Solutions-International-Ireland-Limited-222937'
  
     test_company = Company(url=sample_company_url)
     test_company.show_vitals()
-    print(test_company.__dict__)

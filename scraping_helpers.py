@@ -27,7 +27,7 @@ def get_tag_from_url_and_id(session, url, id):
     response = session.get(url)
     html_content = response.content
     # Parse the html content
-    soup = BeautifulSoup(html_content, 'html.parser')
+    soup = BeautifulSoup(html_content, 'html.parser', from_encoding='utf-8')
     # Get the text from element id
     results = soup.find(id=id)
     return results
@@ -42,10 +42,16 @@ def get_company_listings_complete_links(session):
     id = "level-links"
     # Get the links
     results = get_tag_from_url_and_id(session, url, id)
-    links = [result['href'] for result in results.find_all('a')]
-    # Format the links for proper use
-    complete_links = [f'{root_url}{link}' for link in links]
-
+    higher_links = [result['href'] for result in results.find_all('a')]
+    # Second iteration to get the links for the next page
+    lower_links = []
+    for link in higher_links:
+        # Get the links
+        results = get_tag_from_url_and_id(session, root_url+link, id)
+        [lower_links.append(result['href']) for result in results.find_all('a') if result['href'] not in higher_links]
+    
+    # Get the complete links
+    complete_links = [f'{root_url}{link}' for link in lower_links]
     return complete_links
 
 
@@ -58,7 +64,7 @@ def get_company_urls(session, url):
     response = session.get(url)
     html_content = response.content
     # Parse the html content
-    soup = BeautifulSoup(html_content, 'lxml')
+    soup = BeautifulSoup(html_content, 'lxml', from_encoding='utf-8')
     # Get the text from element id
     results = []
     for tag in soup.find_all('td'):
@@ -94,7 +100,7 @@ class Company:
         response = requests.get(self.url)
         html_content = response.content
         # Parse the html content
-        soup = BeautifulSoup(html_content, 'html.parser')
+        soup = BeautifulSoup(html_content, 'html.parser', from_encoding='utf-8')
         logging.debug(f'Parsing complete.')
         return soup
 
@@ -112,20 +118,20 @@ class Company:
         # Check the third sentence for the number of companies the director has chaired
         director_companies = re.search(r'director of [0-9]+ other', sentences[2])
         if director_companies:
-            summary['director_companies'] = re.search(r'[0-9]+', director_companies.group()).group() # Get the number of companies
+            summary['director_companies'] = int(re.search(r'[0-9]+', director_companies.group()).group()) # Get the number of companies
         else:
             summary['director_companies'] = 0
         # Check the fourth sentence for the number of shareholders
         shareholders = re.search(r'[0-9]+ shareholder', sentences[3])
         if shareholders:
-            summary['shareholders'] = re.search('[0-9]+', shareholders.group()).group() # Get the number of shareholders
+            summary['shareholders'] = int(re.search('[0-9]+', shareholders.group()).group()) # Get the number of shareholders
         else:
             summary['shareholders'] = 0
         # Check if there is a fifth sentence, and if there is, get the number companies sharing the Eircode
         if len(sentences) >= 4:
             eircode = re.search(r'Eircode with at least [0-9]+ other', sentences[4])
             if eircode:
-                summary['companies_sharing_eircode'] = re.search('[0-9]+', eircode.group()).group() # Get the number of companies sharing the Eircode
+                summary['companies_sharing_eircode'] = int(re.search('[0-9]+', eircode.group()).group()) # Get the number of companies sharing the Eircode
             else:
                 summary['companies_sharing_eircode'] = 0
         return summary
@@ -182,10 +188,11 @@ if __name__ == "__main__":
         level=logging.DEBUG, 
         format='%(asctime)s - %(levelname)s - %(message)s', 
         filename='scraping_helpers.log',
-        filemode='a')
+        filemode='w')
 
     session = setup_session(proxies)
-    sample_company_url = 'https://www.solocheck.ie/Irish-Company/Saleslink-Solutions-International-Ireland-Limited-222937'
- 
-    test_company = Company(url=sample_company_url)
-    print(test_company.show_vitals())
+    listings = get_company_listings_complete_links(session)
+    logging.debug(f'Listings found: {listings}')
+
+    for listing in listings[:1]:
+        logging.debug(f'For listing {listing}: {get_company_urls(session, listing)}')

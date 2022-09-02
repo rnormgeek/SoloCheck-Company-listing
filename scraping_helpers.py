@@ -110,21 +110,24 @@ class Company:
 
         summary = {}
         # Check the third sentence for the number of companies the director has chaired
-        director_companies = re.search(r'[0-9]', sentences[2])
+        director_companies = re.search(r'director of [0-9]+ other', sentences[2])
         if director_companies:
-            summary['director_companies'] = director_companies.group()
-
+            summary['director_companies'] = re.search(r'[0-9]+', director_companies.group()).group() # Get the number of companies
+        else:
+            summary['director_companies'] = 0
         # Check the fourth sentence for the number of shareholders
         shareholders = re.search(r'[0-9]+ shareholder', sentences[3])
         if shareholders:
             summary['shareholders'] = re.search('[0-9]+', shareholders.group()).group() # Get the number of shareholders
-
+        else:
+            summary['shareholders'] = 0
         # Check if there is a fifth sentence, and if there is, get the number companies sharing the Eircode
         if len(sentences) >= 4:
             eircode = re.search(r'Eircode with at least [0-9]+ other', sentences[4])
             if eircode:
-                summary['eircode'] = re.search('[0-9]+', eircode.group()).group() # Get the number of companies sharing the Eircode
-
+                summary['companies_sharing_eircode'] = re.search('[0-9]+', eircode.group()).group() # Get the number of companies sharing the Eircode
+            else:
+                summary['companies_sharing_eircode'] = 0
         return summary
 
     def _get_vitals_from_report(self, soup):
@@ -138,7 +141,7 @@ class Company:
                 for span in li.find_all('span'):
                     if span.has_attr('class'):
                         if span['class'] == ['title']:
-                            key = span.text.replace(':', '').lower()
+                            key = span.text.replace(':', '').lower().replace(' ', '_')
                         if span['class'] == ['desc']:
                             hidden = span.find_all('li')
                             if len(hidden) > 0:
@@ -153,25 +156,22 @@ class Company:
         return vitals
 
     def set_company_attributes(self):
+        """
+        Set the company attributes after fetching the data from the company url
+        """
         soup = self._get_soup()
-        vitals = self._get_vitals_from_report(soup=soup)
-        #TODO: Add the rest of the attributes
-        summary = self._get_company_summary(soup=soup)
-        self.name = vitals['company name']
-        self.age = vitals['time in business']
-        self.company_number = vitals['company number']
-        self.size = vitals['size']
-        self.current_status = vitals['current status']
-        self.activity = vitals['principal activity']
-        self.trading_name = vitals['may trade as']
-        self.address = self._format_address(vitals['registered address'])
+        self.__dict__.update(self._get_vitals_from_report(soup=soup)) # adding the vitals to the company attributes
+        self.__dict__.update(self._get_company_summary(soup=soup)) # adding the summary to the company attributes
 
     def show(self, attr):
         print(f'{attr}: {self.__getattribute__(attr)}')
 
     def show_vitals(self):
-        for v in ['name', 'age', 'company_number', 'size', 'current_status', 'activity', 'trading_name', 'address']:
-            self.show(v)
+        for v in ['company_name', 'time_in_business', 'company_number', 'size', 'current_status', 'principal_activity', 'may_trade_as', 'registered_address', 'largest_company_shareholder']:
+            try:
+                self.show(v)
+            except AttributeError:
+                pass
 
     def write_to_csv(self, filename):
         df = pd.DataFrame([self.__dict__])
@@ -188,4 +188,4 @@ if __name__ == "__main__":
     sample_company_url = 'https://www.solocheck.ie/Irish-Company/Saleslink-Solutions-International-Ireland-Limited-222937'
  
     test_company = Company(url=sample_company_url)
-    test_company.show_vitals()
+    print(test_company.show_vitals())

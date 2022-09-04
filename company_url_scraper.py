@@ -1,13 +1,13 @@
-import scraping_helpers
+import scraping_helpers as sh
 import logging
 
 def main():
-    session = scraping_helpers.setup_session()
-    complete_links = scraping_helpers.get_company_listings_complete_links(session)
+    session = sh.setup_session()
+    complete_links = sh.get_company_listings_complete_links(session)
 
     for link in complete_links:
-        company_urls = scraping_helpers.get_company_urls(session, link)
-        scraping_helpers.save_company_urls(company_urls)
+        company_urls = sh.get_company_urls(session, link)
+        sh.save_company_urls(company_urls, 'data/company_urls.csv')
 
 if __name__ == '__main__':
     logging.basicConfig(

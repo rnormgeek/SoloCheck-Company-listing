@@ -75,19 +75,18 @@ def get_company_urls(session, url):
     logging.info(f'Found {len(complete_links)} urls')
     return complete_links
 
-def save_company_urls(session, url, csv_path):
+def save_company_urls(company_urls, csv_path):
     """
     Write the company urls to a csv file.
     """
-    # Get the company urls
-    company_urls = get_company_urls(session, url)
     # Write the company urls to a csv file
     pd.DataFrame(company_urls).to_csv(csv_path, index=False, header=False, mode='a')
     logging.info(f'Wrote {len(company_urls)} urls to {csv_path}')
 
 class Company:
-    def __init__(self, url):
+    def __init__(self, url, session=None):
         self.url = url
+        self.session = session
         self.set_company_attributes()
 
     def _format_address(self, unformated_address):
@@ -107,7 +106,10 @@ class Company:
         return element
     
     def _get_soup(self):
-        response = requests.get(self.url)
+        if self.session is None:
+            response = requests.get(self.url)
+        else:
+            response = self.session.get(self.url)
         html_content = response.content
         # Parse the html content
         soup = BeautifulSoup(html_content, 'html.parser', from_encoding='utf-8')

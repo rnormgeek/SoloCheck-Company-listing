@@ -10,12 +10,13 @@ proxies = {
 }
 
 
-def setup_session(proxies):
+def setup_session(proxies=None):
     """
     Setup a requests session.
     """
     session = requests.Session()
-    session.proxies = proxies
+    if proxies is not None:
+        session.proxies = proxies
     return session
 
 
@@ -54,7 +55,6 @@ def get_company_listings_complete_links(session):
     complete_links = [f'{root_url}{link}' for link in lower_links]
     return complete_links
 
-
 def get_company_urls(session, url):
     """
     Get the company urls from the solocheck website.
@@ -72,8 +72,18 @@ def get_company_urls(session, url):
             results.append(anchor['href'])
     # Format the links for proper use
     complete_links = [f'{root_url}{link}' for link in results]
-
+    logging.info(f'Found {len(complete_links)} urls')
     return complete_links
+
+def save_company_urls(session, url, csv_path):
+    """
+    Write the company urls to a csv file.
+    """
+    # Get the company urls
+    company_urls = get_company_urls(session, url)
+    # Write the company urls to a csv file
+    pd.DataFrame(company_urls).to_csv(csv_path, index=False, header=False, mode='a')
+    logging.info(f'Wrote {len(company_urls)} urls to {csv_path}')
 
 class Company:
     def __init__(self, url):

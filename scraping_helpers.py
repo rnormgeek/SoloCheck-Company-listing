@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import logging
+from datetime import datetime
 import re
 
 proxies = {
@@ -124,28 +125,26 @@ class Company:
         tag = soup.find('div', id='report-6')
         logging.debug(f'report-6 found')
         summary_text = tag.find('p').text
-        sentences = summary_text.split('.') # Split by sentence
 
         summary = {}
         # Check the third sentence for the number of companies the director has chaired
-        director_companies = re.search(r'director of [0-9]+ other', sentences[2])
+        director_companies = re.search(r'director of [0-9]+ other', summary_text)
         if director_companies:
             summary['director_companies'] = int(re.search(r'[0-9]+', director_companies.group()).group()) # Get the number of companies
         else:
             summary['director_companies'] = 0
         # Check the fourth sentence for the number of shareholders
-        shareholders = re.search(r'[0-9]+ shareholder', sentences[3])
+        shareholders = re.search(r'[0-9]+ shareholder', summary_text)
         if shareholders:
             summary['shareholders'] = int(re.search('[0-9]+', shareholders.group()).group()) # Get the number of shareholders
         else:
             summary['shareholders'] = 0
         # Check if there is a fifth sentence, and if there is, get the number companies sharing the Eircode
-        if len(sentences) >= 4:
-            eircode = re.search(r'Eircode with at least [0-9]+ other', sentences[4])
-            if eircode:
-                summary['companies_sharing_eircode'] = int(re.search('[0-9]+', eircode.group()).group()) # Get the number of companies sharing the Eircode
-            else:
-                summary['companies_sharing_eircode'] = 0
+        eircode = re.search(r'Eircode with at least [0-9]+ other', summary_text)
+        if eircode:
+            summary['companies_sharing_eircode'] = int(re.search('[0-9]+', eircode.group()).group()) # Get the number of companies sharing the Eircode
+        else:
+            summary['companies_sharing_eircode'] = 0
         return summary
 
     def _get_vitals_from_report(self, soup):
@@ -192,7 +191,9 @@ class Company:
                 pass
 
     def write_to_csv(self, filename):
+        del self.__dict__['session']
         df = pd.DataFrame([self.__dict__])
+        df['date_added_to_database'] = datetime.now().strftime('%Y-%m-%d')
         df.to_csv(filename, mode='a', header=False, index=False)
 
 if __name__ == "__main__":
@@ -203,8 +204,15 @@ if __name__ == "__main__":
         filemode='w')
 
     session = setup_session(proxies)
+
+    test_company = Company(url='https://www.solocheck.ie/Irish-Company/Aughey-Holdings-Limited-300765')
+
+    print(test_company.__dict__.keys())
+
+    """ To test the listings
     listings = get_company_listings_complete_links(session)
     logging.debug(f'Listings found: {listings}')
 
     for listing in listings[:1]:
         logging.debug(f'For listing {listing}: {get_company_urls(session, listing)}')
+    """

@@ -169,6 +169,12 @@ class Company:
                             vitals[key] = value
                         except UnboundLocalError:
                             pass
+        # Formatting the vitals so missing keys are not a problem
+        for k in ['company_name', 'time_in_business', 'company_number', 'size',
+            'current_status', 'principal_activity', 'may_trade_as', 
+            'registered_address', 'largest_company_shareholder'] not in vitals.keys():
+            vitals[k] = ''
+
         logging.debug(f'Company vitals successfully extracted')
         return vitals
 
@@ -194,7 +200,13 @@ class Company:
         del self.__dict__['session']
         df = pd.DataFrame([self.__dict__])
         df['date_added_to_database'] = datetime.now().strftime('%Y-%m-%d')
-        df.to_csv(filename, mode='a', header=False, index=False)
+        # Making sure the columns are in the right order
+        df.reindex(columns=['url', 'session', 'company_name', 
+            'time_in_business', 'company_number', 'size', 
+            'current_status', 'principal_activity', 'may_trade_as', 
+            'largest_company_shareholder', 'registered_address', 
+            'director_companies', 'shareholders', 'companies_sharing_eircode', 
+            'date_added_to_database']).to_csv(filename, mode='a', header=False, index=False)
 
 if __name__ == "__main__":
     logging.basicConfig(

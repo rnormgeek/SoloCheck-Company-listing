@@ -169,14 +169,19 @@ class Company:
                             vitals[key] = value
                         except UnboundLocalError:
                             pass
+
+        vitals_list = ['company_name', 'time_in_business', 'company_number', 'size',
+            'current_status', 'website', 'phone', 'principal_activity', 'may_trade_as']
         # Formatting the vitals so missing keys are not a problem
-        for k in ['company_name', 'time_in_business', 'company_number', 'size',
-            'current_status', 'principal_activity', 'may_trade_as', 
-            'registered_address', 'largest_company_shareholder'] not in vitals.keys():
-            vitals[k] = ''
+        for k in vitals_list:
+            if k not in vitals:
+                vitals[k] = ''
+
+        # Keeping the vitals that are required
+        vitals_updated = {k:v for k,v in vitals.items() if k in vitals_list}
 
         logging.debug(f'Company vitals successfully extracted')
-        return vitals
+        return vitals_updated
 
     def set_company_attributes(self):
         """
@@ -201,9 +206,9 @@ class Company:
         df = pd.DataFrame([self.__dict__])
         df['date_added_to_database'] = datetime.now().strftime('%Y-%m-%d')
         # Making sure the columns are in the right order
-        df.reindex(columns=['url', 'session', 'company_name', 
+        df.reindex(columns=['url', 'company_name', 
             'time_in_business', 'company_number', 'size', 
-            'current_status', 'principal_activity', 'may_trade_as', 
+            'current_status', 'website', 'phone', 'principal_activity', 'may_trade_as', 
             'largest_company_shareholder', 'registered_address', 
             'director_companies', 'shareholders', 'companies_sharing_eircode', 
             'date_added_to_database']).to_csv(filename, mode='a', header=False, index=False)
@@ -217,9 +222,11 @@ if __name__ == "__main__":
 
     session = setup_session(proxies)
 
-    test_company = Company(url='https://www.solocheck.ie/Irish-Company/Aughey-Holdings-Limited-300765')
+    test_company1 = Company(url='https://www.solocheck.ie/Irish-Company/Aughey-Holdings-Limited-300765')
+    test_company2 = Company(url='https://www.solocheck.ie/Irish-Company/Abbey-Healthcare-Unlimited-Company-267243')
 
-    print(test_company.__dict__.keys())
+    print(test_company1.__dict__.keys())
+    print(test_company2.__dict__)
 
     """ To test the listings
     listings = get_company_listings_complete_links(session)

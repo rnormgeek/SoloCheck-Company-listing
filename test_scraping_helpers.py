@@ -22,7 +22,9 @@ def test_get_vitals_from_report(soup):
         'principal_activity': '[30.02] Manufacture of Computers and Other Information Processing Equipment',
         'registered_address': '10 Earlsfort Terrace,Dublin 2,Dublin',
         'size': 'Micro Company',
-        'time_in_business': '27 Years'
+        'time_in_business': '27 Years',
+        'website': '',
+        'phone': ''
     }
 
 def test_get_company_summary(soup):

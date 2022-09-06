@@ -38,5 +38,5 @@ if __name__ == "__main__":
 
     # Parallel version:
     session = sh.setup_session()
-    company_urls = pd.read_csv('data/company_urls.csv', header=None, names=['url'], nrows=1000)['url'].tolist()
+    company_urls = pd.read_csv('data/company_urls.csv', header=None, names=['url'])['url'].tolist()
     Parallel(n_jobs=num_cores)(delayed(main_process)(company_url, session) for company_url in tqdm(company_urls))

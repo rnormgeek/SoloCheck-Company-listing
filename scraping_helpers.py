@@ -171,7 +171,8 @@ class Company:
                             pass
 
         vitals_list = ['company_name', 'time_in_business', 'company_number', 'size',
-            'current_status', 'website', 'phone', 'principal_activity', 'may_trade_as']
+            'current_status', 'website', 'phone', 'principal_activity', 'may_trade_as', 
+            'largest_company_shareholder', 'registered_address']
         # Formatting the vitals so missing keys are not a problem
         for k in vitals_list:
             if k not in vitals:
@@ -225,7 +226,7 @@ if __name__ == "__main__":
     test_company1 = Company(url='https://www.solocheck.ie/Irish-Company/Aughey-Holdings-Limited-300765')
     test_company2 = Company(url='https://www.solocheck.ie/Irish-Company/Abbey-Healthcare-Unlimited-Company-267243')
 
-    print(test_company1.__dict__.keys())
+    print(test_company1.__dict__)
     print(test_company2.__dict__)
 
     """ To test the listings
